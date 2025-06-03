@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>GoChat - 多人实时聊天室</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #f0f2f5; }
+        #chatbox {
+            width: 80%; max-width: 800px; height: 500px;
+            border: 1px solid #ccc; background-color: #fff;
+            overflow-y: scroll; padding: 10px; margin-bottom: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border-radius: 8px;
+        }
+        #messageInput {
+            width: calc(80% - 70px); max-width: calc(800px - 70px);
+            padding: 10px; border: 1px solid #ccc; border-radius: 5px;
+        }
+        #sendButton {
+            padding: 10px 15px; background-color: #007bff; color: white;
+            border: none; border-radius: 5px; cursor: pointer;
+            margin-left: 5px;
+        }
+        #sendButton:hover { background-color: #0056b3; }
+        .message-container { margin-bottom: 8px; }
+        .message-header { font-weight: bold; color: #333; margin-bottom: 2px; }
+        .message-content { color: #555; }
+        .system-message { font-style: italic; color: #777; text-align: center; margin: 10px 0; }
+        .username-input {
+            margin-bottom: 15px;
+        }
+        .username-input input {
+            padding: 8px; border: 1px solid #ccc; border-radius: 4px;
+            width: 200px;
+        }
+        .username-input button {
+            padding: 8px 12px; background-color: #28a745; color: white;
+            border: none; border-radius: 4px; cursor: pointer;
+            margin-left: 5px;
+        }
+        .username-input button:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+<h1>GoChat</h1>
+
+<div class="username-input">
+    <input type="text" id="usernameInput" placeholder="请输入你的昵称">
+    <button onclick="connectChat()">加入聊天</button>
+</div>
+
+<div id="chatbox"></div>
+<input type="text" id="messageInput" placeholder="输入消息...">
+<button id="sendButton" onclick="sendMessage()">发送</button>
+
+<script>
+    let ws;
+    let username = "";
+    const chatbox = document.getElementById('chatbox');
+    const messageInput = document.getElementById('messageInput');
+    const usernameInput = document.getElementById('usernameInput');
+
+    function connectChat() {
+        username = usernameInput.value.trim();
+        if (!username) {
+            alert("请输入昵称！");
+            return;
+        }
+
+        if (ws) {
+            ws.close(); // Close existing connection if any
+        }
+
+        // 获取当前协议 (http 或 https)
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        // 构造 WebSocket URL
+        const wsURL = `${protocol}//${window.location.host}/ws?username=${encodeURIComponent(username)}`;
+        ws = new WebSocket(wsURL);
+
+        ws.onopen = function(event) {
+            console.log("WebSocket connected.");
+            chatbox.innerHTML = ''; // Clear chatbox on new connection
+            appendMessage({ type: 'system', content: `你已成功加入聊天室，昵称: ${username}` });
+        };
+
+        ws.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            appendMessage(data);
+        };
+
+        ws.onclose = function(event) {
+            console.log("WebSocket disconnected: ", event);
+            appendMessage({ type: 'system', content: '你已从聊天室断开连接。' });
+        };
+
+        ws.onerror = function(event) {
+            console.error("WebSocket error: ", event);
+            appendMessage({ type: 'system', content: 'WebSocket 连接出现错误。' });
+        };
+
+        messageInput.focus();
+        usernameInput.disabled = true; // Disable username input after connecting
+        document.querySelector('.username-input button').disabled = true; // Disable join button
+    }
+
+    messageInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
+    });
+
+    function sendMessage() {
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+            alert("请先加入聊天室！");
+            return;
+        }
+
+        const content = messageInput.value.trim();
+        if (content === "") {
+            return;
+        }
+
+        const message = {
+            username: username, // Sent by client, but server will re-set for security
+            content: content
+        };
+        ws.send(JSON.stringify(message));
+        messageInput.value = ""; // Clear input field
+    }
+
+    function appendMessage(data) {
+        const messageDiv = document.createElement('div');
+        messageDiv.classList.add('message-container');
+
+        if (data.type === 'system') {
+            messageDiv.classList.add('system-message');
+            messageDiv.innerHTML = data.content;
+        } else {
+            const headerDiv = document.createElement('div');
+            headerDiv.classList.add('message-header');
+            const contentDiv = document.createElement('div');
+            contentDiv.classList.add('message-content');
+
+            const timestamp = new Date(data.timestamp).toLocaleTimeString();
+            headerDiv.innerText = `${data.username} (${timestamp}):`;
+            contentDiv.innerText = data.content;
+
+            messageDiv.appendChild(headerDiv);
+            messageDiv.appendChild(contentDiv);
+        }
+
+        chatbox.appendChild(messageDiv);
+        chatbox.scrollTop = chatbox.scrollHeight; // Scroll to bottom
+    }
+
+</script>
+</body>
+</html>
