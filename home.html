@@ -4,56 +4,136 @@
     <meta charset="utf-8">
     <title>GoChat - 多人实时聊天室</title>
     <style>
-        body { font-family: sans-serif; margin: 20px; background-color: #f0f2f5; }
-        #chatbox {
-            width: 80%; max-width: 800px; height: 500px;
-            border: 1px solid #ccc; background-color: #fff;
-            overflow-y: scroll; padding: 10px; margin-bottom: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        body { font-family: sans-serif; margin: 20px; background-color: #f0f2f5; display: flex; }
+        #chat-container {
+            display: flex;
+            width: 95%; /* 调整宽度 */
+            max-width: 1200px; /* 最大宽度 */
+            margin: 0 auto;
+            background-color: #fff;
             border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            height: 700px; /* 统一高度 */
+            overflow: hidden; /* 防止内部溢出 */
         }
-        #messageInput {
-            width: calc(80% - 70px); max-width: calc(800px - 70px);
-            padding: 10px; border: 1px solid #ccc; border-radius: 5px;
+        #chat-area {
+            flex: 3; /* 聊天区占据更多空间 */
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #eee;
         }
-        #sendButton {
-            padding: 10px 15px; background-color: #007bff; color: white;
-            border: none; border-radius: 5px; cursor: pointer;
-            margin-left: 5px;
+        #user-list-area {
+            flex: 1; /* 用户列表区 */
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-left: 1px solid #eee;
         }
-        #sendButton:hover { background-color: #0056b3; }
-        .message-container { margin-bottom: 8px; }
-        .message-header { font-weight: bold; color: #333; margin-bottom: 2px; }
-        .message-content { color: #555; }
-        .system-message { font-style: italic; color: #777; text-align: center; margin: 10px 0; }
-        .username-input {
+        #user-list-area h3 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
             margin-bottom: 15px;
         }
-        .username-input input {
-            padding: 8px; border: 1px solid #ccc; border-radius: 4px;
-            width: 200px;
+        #user-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
         }
-        .username-input button {
-            padding: 8px 12px; background-color: #28a745; color: white;
-            border: none; border-radius: 4px; cursor: pointer;
-            margin-left: 5px;
+        #user-list li {
+            padding: 8px 0;
+            color: #555;
+            font-size: 0.95em;
+            display: flex;
+            align-items: center;
         }
-        .username-input button:hover {
+        #user-list li::before {
+            content: '•';
+            color: #28a745; /* 在线指示器 */
+            margin-right: 8px;
+            font-size: 1.2em;
+        }
+
+        #chatbox {
+            flex-grow: 1; /* 聊天内容区占据剩余空间 */
+            overflow-y: scroll;
+            padding: 15px;
+        }
+        #messageInputForm {
+            display: flex;
+            padding: 15px;
+            border-top: 1px solid #eee;
+            background-color: #fff;
+        }
+        #messageInput {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1em;
+            margin-right: 10px;
+        }
+        #sendButton {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+        #sendButton:hover { background-color: #0056b3; }
+
+        .message-container { margin-bottom: 8px; line-height: 1.5; }
+        .message-header { font-weight: bold; color: #333; margin-bottom: 2px; }
+        .message-content { color: #555; word-wrap: break-word; } /* 确保长单词换行 */
+        .system-message { font-style: italic; color: #777; text-align: center; margin: 10px 0; }
+        .username-input-container {
+            padding: 20px;
+            background-color: #e9ecef;
+            border-bottom: 1px solid #dee2e6;
+            text-align: center;
+        }
+        .username-input-container input {
+            padding: 10px; border: 1px solid #ccc; border-radius: 5px;
+            width: 250px; margin-right: 10px; font-size: 1em;
+        }
+        .username-input-container button {
+            padding: 10px 20px; background-color: #28a745; color: white;
+            border: none; border-radius: 5px; cursor: pointer; font-size: 1em;
+        }
+        .username-input-container button:hover {
             background-color: #218838;
+        }
+        #error-message {
+            color: #dc3545;
+            font-weight: bold;
+            margin-top: 10px;
+            display: none; /* 默认隐藏 */
         }
     </style>
 </head>
 <body>
-<h1>GoChat</h1>
-
-<div class="username-input">
-    <input type="text" id="usernameInput" placeholder="请输入你的昵称">
-    <button onclick="connectChat()">加入聊天</button>
+<div id="chat-container">
+    <div id="chat-area">
+        <div class="username-input-container">
+            <h2>GoChat</h2>
+            <input type="text" id="usernameInput" placeholder="请输入你的昵称">
+            <button id="connectButton" onclick="connectChat()">加入聊天</button>
+            <div id="error-message"></div>
+        </div>
+        <div id="chatbox"></div>
+        <form id="messageInputForm" onsubmit="sendMessage(event)">
+            <input type="text" id="messageInput" placeholder="输入消息..." autocomplete="off">
+            <button id="sendButton" type="submit">发送</button>
+        </form>
+    </div>
+    <div id="user-list-area">
+        <h3>在线用户 (<span id="user-count">0</span>)</h3>
+        <ul id="user-list">
+        </ul>
+    </div>
 </div>
-
-<div id="chatbox"></div>
-<input type="text" id="messageInput" placeholder="输入消息...">
-<button id="sendButton" onclick="sendMessage()">发送</button>
 
 <script>
     let ws;
@@ -61,59 +141,85 @@
     const chatbox = document.getElementById('chatbox');
     const messageInput = document.getElementById('messageInput');
     const usernameInput = document.getElementById('usernameInput');
+    const connectButton = document.getElementById('connectButton');
+    const errorMessageDiv = document.getElementById('error-message');
+    const userListUl = document.getElementById('user-list');
+    const userCountSpan = document.getElementById('user-count');
+
+    // 初始化时禁用消息输入和发送按钮
+    messageInput.disabled = true;
+    sendButton.disabled = true;
 
     function connectChat() {
         username = usernameInput.value.trim();
         if (!username) {
-            alert("请输入昵称！");
+            displayError("请输入昵称！");
             return;
         }
+        displayError(""); // 清除之前的错误信息
 
-        if (ws) {
-            ws.close(); // Close existing connection if any
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.close(); // 关闭现有连接（如果有的话）
         }
 
-        // 获取当前协议 (http 或 https)
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        // 构造 WebSocket URL
         const wsURL = `${protocol}//${window.location.host}/ws?username=${encodeURIComponent(username)}`;
         ws = new WebSocket(wsURL);
 
         ws.onopen = function(event) {
-            console.log("WebSocket connected.");
-            chatbox.innerHTML = ''; // Clear chatbox on new connection
+            console.log("WebSocket 已连接。");
+            chatbox.innerHTML = ''; // 清空聊天框
             appendMessage({ type: 'system', content: `你已成功加入聊天室，昵称: ${username}` });
+            usernameInput.disabled = true; // 禁用昵称输入框
+            connectButton.disabled = true; // 禁用加入按钮
+            messageInput.disabled = false; // 启用消息输入
+            sendButton.disabled = false; // 启用发送按钮
+            messageInput.focus();
         };
 
         ws.onmessage = function(event) {
             const data = JSON.parse(event.data);
-            appendMessage(data);
+            // 根据消息类型分发处理
+            if (data.type === 'user_list') {
+                updateUserList(data.users); // 处理用户列表更新
+            } else if (data.type === 'error') {
+                displayError(data.error); // 显示服务器返回的错误信息
+                ws.close(); // 服务器拒绝连接，关闭 WebSocket
+                // 重新启用昵称输入和加入按钮，禁用消息输入和发送
+                usernameInput.disabled = false;
+                connectButton.disabled = false;
+                messageInput.disabled = true;
+                sendButton.disabled = true;
+            } else {
+                // 处理普通聊天、加入、离开、系统消息，添加到聊天框
+                appendMessage(data);
+            }
         };
 
         ws.onclose = function(event) {
-            console.log("WebSocket disconnected: ", event);
+            console.log("WebSocket 已断开连接: ", event);
             appendMessage({ type: 'system', content: '你已从聊天室断开连接。' });
+            // 重新启用昵称输入和加入按钮，禁用消息输入和发送
+            usernameInput.disabled = false;
+            connectButton.disabled = false;
+            messageInput.disabled = true;
+            sendButton.disabled = true;
+            updateUserList([]); // 清空用户列表
         };
 
         ws.onerror = function(event) {
-            console.error("WebSocket error: ", event);
-            appendMessage({ type: 'system', content: 'WebSocket 连接出现错误。' });
+            console.error("WebSocket 错误: ", event);
+            displayError('WebSocket 连接出现错误。');
+            ws.close(); // 确保连接被关闭
         };
-
-        messageInput.focus();
-        usernameInput.disabled = true; // Disable username input after connecting
-        document.querySelector('.username-input button').disabled = true; // Disable join button
     }
 
-    messageInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            sendMessage();
-        }
-    });
+    // 使用 onsubmit 处理表单提交，方便回车发送
+    function sendMessage(event) {
+        event.preventDefault(); // 阻止表单默认提交行为（页面刷新）
 
-    function sendMessage() {
         if (!ws || ws.readyState !== WebSocket.OPEN) {
-            alert("请先加入聊天室！");
+            displayError("请先加入聊天室！");
             return;
         }
 
@@ -123,11 +229,11 @@
         }
 
         const message = {
-            username: username, // Sent by client, but server will re-set for security
+            username: username, // 客户端发送的用户名（服务器会验证和使用它）
             content: content
         };
         ws.send(JSON.stringify(message));
-        messageInput.value = ""; // Clear input field
+        messageInput.value = ""; // 清空输入字段
     }
 
     function appendMessage(data) {
@@ -137,7 +243,7 @@
         if (data.type === 'system') {
             messageDiv.classList.add('system-message');
             messageDiv.innerHTML = data.content;
-        } else {
+        } else if (data.type === 'chat' || data.type === 'join' || data.type === 'leave') {
             const headerDiv = document.createElement('div');
             headerDiv.classList.add('message-header');
             const contentDiv = document.createElement('div');
@@ -150,9 +256,29 @@
             messageDiv.appendChild(headerDiv);
             messageDiv.appendChild(contentDiv);
         }
+        // 'error' 和 'user_list' 消息类型由其他函数处理，这里不添加到聊天框
 
-        chatbox.appendChild(messageDiv);
-        chatbox.scrollTop = chatbox.scrollHeight; // Scroll to bottom
+        // 只有聊天和系统消息才添加到聊天框
+        // (join/leave 消息也由 appendMessage 处理，所以这里不需要特别过滤，它们有自己的 type)
+        if (data.type !== 'user_list' && data.type !== 'error') {
+            chatbox.appendChild(messageDiv);
+            chatbox.scrollTop = chatbox.scrollHeight; // 滚动到底部
+        }
+    }
+
+    function updateUserList(users) {
+        userListUl.innerHTML = ''; // 清空现有列表
+        userCountSpan.innerText = users.length; // 更新用户数量
+        users.forEach(user => {
+            const li = document.createElement('li');
+            li.innerText = user;
+            userListUl.appendChild(li);
+        });
+    }
+
+    function displayError(message) {
+        errorMessageDiv.innerText = message;
+        errorMessageDiv.style.display = message ? 'block' : 'none';
     }
 
 </script>

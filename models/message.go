@@ -7,4 +7,7 @@ type Message struct {
 	Username  string    `json:"username"`
 	Content   string    `json:"content"`
 	Timestamp time.Time `json:"timestamp"`
+
+	Users []string `json:"users,omitempty"`
+	Error string   `json:"error,omitempty"`
 }
